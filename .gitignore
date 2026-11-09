@@ -1,0 +1,13 @@
+.DS_Store
+.build/
+.swiftpm/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+artifacts/
+logs/
+*.pcapng
+*.pcap
+
+# 上游参考源码只作为只读参考，不纳入本仓库（见 docs/REVERSE_ENGINEERING.md）
+References/InphicMouse/
