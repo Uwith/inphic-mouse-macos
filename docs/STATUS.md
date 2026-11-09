@@ -118,9 +118,9 @@
 
 说明：宏 >6 动作的分块没有官方抓包 Golden，测试验证的是结构不变量（块头、长度、重组、校验和），**不是实机行为**。
 
-## Phase 3 工具：**已实现，未执行任何写入**
+## Phase 3 宏上传工具：已实现；0x08 宏写入未执行（2026-11-09 仅写入 0x09 按键映射）
 
-`tools/macro-tool` 已完成并通过只读验证：
+`tools/macro-tool` 已真机验证 `backup`/`plan`，并成功写入 `0x09` 按键映射（见下节）；宏 `apply` 仍未执行。
 
 | 命令 | 结果 |
 |------|------|
@@ -154,6 +154,16 @@ cd tools/macro-tool
 ```bash
 .build/debug/macro-tool restore --backup backups/inphic-20261109-091808.json --yes
 ```
+
+## 2026-11-09 按键映射写入：侧键 → Ctrl+← / Ctrl+→
+
+- 备份：`backups/inphic-20261109-094819.json`
+- 写入：`0x09`，`write=true`、`ack=true`，读回 `0x11` **与目标一致**
+- 映射：键 3 `10 08 00` → `70 01 50`（左 Ctrl + HID Left）；键 4 `10 10 00` → `70 01 4F`（左 Ctrl + HID Right）
+- 线上帧（33 字节，strip 后发送 32 字节；校验只覆盖 payload）：
+  `00 09 00 01 12 10 01 00 10 02 00 10 04 00 70 01 50 70 01 4F 40 01 00 00 00 00 00 00 00 00 00 00 F9`
+- 执行：**待人工按键确认**（后侧键应切上一空间，前侧键应切下一空间）
+- 若无效，恢复：`macro-tool restore --backup backups/inphic-20261109-094819.json --yes`
 
 ## 自检结果
 

@@ -15,6 +15,7 @@ struct Options {
     var backupPath: String?
     var yes = false
     var timeout: TimeInterval = 1.0
+    var sets: [(index: Int, entry: KeyMapCodec.KeyEntry)] = []
 }
 
 func usage() {
@@ -27,6 +28,9 @@ func usage() {
       macro-tool apply  [--index N] [--key K] --yes
                                                    备份 → 写 0x08 → 写 0x09 → 读回 0x11
       macro-tool restore --backup FILE --yes       用备份中的 0x11 载荷恢复按键映射
+      macro-tool set-key --set K=HHHHHH [--set ...] [--yes]
+                                                   只改按键映射：K=键下标，HHHHHH=3 字节条目
+                                                   例：--set 3=700150 --set 4=70014F（Ctrl+←/→）
 
     说明:
       --key K   物理键下标（0-based，默认 5 = 0x11 读到的第 6 个键 / DPI 键）
@@ -64,6 +68,19 @@ func parseOptions() -> Options {
         case "--slot": options.slot = next().flatMap(Int.init)
         case "--backup": options.backupPath = next()
         case "--out": options.backupPath = next()
+        case "--set":
+            guard let spec = next() else { print("错误: --set 需要 K=HHHHHH"); exit(4) }
+            let parts = spec.split(separator: "=", maxSplits: 1).map(String.init)
+            guard parts.count == 2, let index = Int(parts[0]),
+                  let raw = parseHexInt(parts[1]), (0...0xFF_FFFF).contains(raw) else {
+                print("错误: --set 格式应为 K=HHHHHH，例如 3=700150"); exit(4)
+            }
+            let entry = KeyMapCodec.KeyEntry(
+                type: UInt8((raw >> 16) & 0xFF),
+                v1: UInt8((raw >> 8) & 0xFF),
+                v2: UInt8(raw & 0xFF)
+            )
+            options.sets.append((index, entry))
         case "--timeout-ms": if let v = next().flatMap(Double.init) { options.timeout = v / 1000 }
         case "--yes": options.yes = true
         default:
@@ -142,9 +159,32 @@ func defaultBackupPath() -> String {
     return "backups/inphic-\(formatter.string(from: Date())).json"
 }
 
+@discardableResult
+func saveBackup(session: HIDDeviceSession, options: Options) throws -> String {
+    let records = readAllConfiguration(session: session, timeout: options.timeout)
+    let path = options.backupPath ?? defaultBackupPath()
+    let info = session.info
+    try writeBackup(BackupFile(
+        savedAt: ISO8601DateFormatter().string(from: Date()),
+        vendorID: info.vendorID, productID: info.productID,
+        product: info.product, serialNumber: info.serialNumber,
+        interfaceNumber: info.interfaceNumber, records: records
+    ), path: path)
+    return path
+}
+
 // MARK: - 按键映射
 
 func readKeyMap(session: HIDDeviceSession, timeout: TimeInterval) -> [KeyMapCodec.KeyEntry]? {
+    // 0x11 偶发首帧无响应（设备刚唤醒/会话刚打开），重试 3 次。
+    for attempt in 0..<3 {
+        if let entries = readKeyMapOnce(session: session, timeout: timeout) { return entries }
+        if attempt < 2 { usleep(150_000) }
+    }
+    return nil
+}
+
+private func readKeyMapOnce(session: HIDDeviceSession, timeout: TimeInterval) -> [KeyMapCodec.KeyEntry]? {
     let result = session.exchange(frame: ReadCommand.handshake.frame, mode: .strip, timeout: timeout)
     guard let response = result.ackResponse else { return nil }
     let offset = result.ackOffset ?? 0
@@ -306,6 +346,70 @@ func runApply(_ options: Options) -> Int32 {
     }
 }
 
+func runSetKey(_ options: Options) -> Int32 {
+    guard !options.sets.isEmpty else {
+        print("错误: set-key 需要至少一个 --set K=HHHHHH")
+        return 4
+    }
+    return withSession(options) { session in
+        guard var entries = readKeyMap(session: session, timeout: options.timeout) else {
+            throw ToolError("0x11 未返回可解析的按键映射；未写入")
+        }
+        guard entries.count == 6 else { throw ToolError("0x11 返回 \(entries.count) 个键；未写入") }
+
+        print("\n当前按键映射:")
+        for (i, entry) in entries.enumerated() { print("  [\(i)] \(describe(entry))") }
+
+        var changes: [(Int, KeyMapCodec.KeyEntry, KeyMapCodec.KeyEntry)] = []
+        for (index, entry) in options.sets {
+            guard entries.indices.contains(index) else {
+                throw ToolError("--set 键下标 \(index) 超出 0..<\(entries.count)")
+            }
+            changes.append((index, entries[index], entry))
+            entries[index] = entry
+        }
+
+        let frame = try KeyMapCodec.encode(entries)
+        print("\n修改:")
+        for (index, old, new) in changes {
+            print("  [\(index)] \(describe(old)) → \(describe(new))")
+        }
+        print("\n新按键映射 0x09: \(Hex.string(frame))")
+
+        guard options.yes else {
+            print("\n以上为 dry-run，未写入。")
+            return 0
+        }
+
+        let path = try saveBackup(session: session, options: options)
+        print("\n已备份: \(path)")
+
+        let result = session.exchange(frame: frame, mode: .strip, timeout: options.timeout)
+        print("0x09: write=\(result.wrote) ack=\(result.acked) sent=\(Hex.string(result.wireBytes))")
+        guard result.wrote else { throw ToolError("0x09 写失败") }
+
+        guard let readBack = readKeyMap(session: session, timeout: options.timeout) else {
+            print("读回: 0x11 无有效响应（写入结果未知）")
+            return 1
+        }
+        let matched = readBack.count == entries.count && zip(readBack, entries).allSatisfy { $0 == $1 }
+        print("读回 0x11: \(matched ? "与目标一致" : "与目标不一致")")
+        for (i, entry) in readBack.enumerated() { print("  [\(i)] \(describe(entry))") }
+
+        print("""
+
+        写入状态（四态，不得混淆）:
+          发送: 成功
+          ACK : \(result.acked ? "收到" : "未收到")
+          读回: \(matched ? "一致" : "不一致/未知")
+          执行: 未验证 —— 请手动按下被修改的键，确认系统动作
+
+        恢复按键映射: macro-tool restore --backup \(path) --yes
+        """)
+        return matched ? 0 : 1
+    }
+}
+
 func runRestore(_ options: Options) -> Int32 {
     guard options.yes else {
         print("拒绝写入：restore 需要 --yes。")
@@ -351,6 +455,7 @@ switch options.command {
 case "backup": code = runBackup(options)
 case "plan": code = runPlan(options)
 case "apply": code = runApply(options)
+case "set-key": code = runSetKey(options)
 case "restore": code = runRestore(options)
 default:
     usage()

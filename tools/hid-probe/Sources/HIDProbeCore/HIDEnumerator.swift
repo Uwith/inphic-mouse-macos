@@ -95,12 +95,39 @@ public final class HIDEnumerator {
     private let manager: IOHIDManager
 
     public init() throws {
-        manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
-        IOHIDManagerSetDeviceMatching(manager, nil)
+        // 打开“全部 HID”时，只要其中一个 collection 返回 kIOReturnUnsupported，
+        // IOHIDManagerOpen 就会整体失败（例如同时插着其它 2.4G 键盘）。
+        // 此时退回只匹配 Inphic 厂商（248A / 249A）的多个 matching 字典。
+        do {
+            manager = try Self.open(matching: nil)
+        } catch {
+            manager = try Self.open(matchingMultiple: [
+                [kIOHIDVendorIDKey as String: InphicHardware.usbVendorID],
+                [kIOHIDVendorIDKey as String: InphicHardware.wirelessVendorID],
+            ])
+        }
+    }
+
+    private static func open(matching: CFDictionary?) throws -> IOHIDManager {
+        let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
+        IOHIDManagerSetDeviceMatching(manager, matching)
         let result = IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
         guard result == kIOReturnSuccess else {
+            IOHIDManagerClose(manager, IOOptionBits(kIOHIDOptionsTypeNone))
             throw HIDEnumeratorError.managerOpenFailed(result)
         }
+        return manager
+    }
+
+    private static func open(matchingMultiple: [[String: Any]]) throws -> IOHIDManager {
+        let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
+        IOHIDManagerSetDeviceMatchingMultiple(manager, matchingMultiple as CFArray)
+        let result = IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+        guard result == kIOReturnSuccess else {
+            IOHIDManagerClose(manager, IOOptionBits(kIOHIDOptionsTypeNone))
+            throw HIDEnumeratorError.managerOpenFailed(result)
+        }
+        return manager
     }
 
     deinit {

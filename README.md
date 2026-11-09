@@ -49,6 +49,8 @@ swift build
 .build/debug/macro-tool backup                 # 备份 0x10–0x17/0x20 到 backups/
 .build/debug/macro-tool plan --key 5           # 只读 dry-run：打印 0x08/0x09 帧
 .build/debug/macro-tool apply --key 5 --yes    # 真实写入（会先备份）
+.build/debug/macro-tool set-key --set 3=700150 --set 4=70014F --yes
+                                               # 只改按键映射：侧键 → Ctrl+← / Ctrl+→
 .build/debug/macro-tool restore --backup backups/<file>.json --yes
 ```
 
