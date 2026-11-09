@@ -82,6 +82,25 @@
 - 型号确认为 IN9 升级版（产品名只有 `Wireless-Receiver`）。
 - 其它 macOS 版本、其它 Mac、其它鼠标个体。
 
+## Phase 2 结果：**通过（纯协议，无硬件）**
+
+2026-11-09 实现 `Sources/InphicMouseProtocol`（无 IOKit / 无 UI），`swift run protocol-selftest`：
+
+```
+194 passed, 0 failed
+```
+
+覆盖：
+
+- `MouseReport`：33 字节布局、校验和、8 位回绕、头部不参与、27/28 字节边界。
+- `DpiCodec` / `LightCodec` / `DeviceSettingsCodec`：上游 `CodecTests` 的全部字节断言。
+- `DeviceInfoCodec`：上游字段解析 + 两种 report-ID 偏移。
+- `KeyCodes` / `DpiConversion`：上游全表 + 往返 + ic 0x11 实机寄存器。
+- `KeyMapCodec`：默认载荷、5/6 键、Ctrl+C、独立修饰键、宏条目 `90 26 01`、重定位、循环标志。
+- `MacroCodec`：官方抓包逐字节、10 记录折叠、修饰键 opcode、末尾延时、相邻最小 1ms、8 动作分块（2 块 27+6）、超过 15 块抛错。
+
+说明：宏 >6 动作的分块没有官方抓包 Golden，测试验证的是结构不变量（块头、长度、重组、校验和），**不是实机行为**。
+
 ## 自检结果
 
 ```
@@ -103,4 +122,4 @@ swift build -c release
 
 ## 结论
 
-Phase 1 的**通信链路已真机打通**（只读）。下一步（Phase 2）可以开始 Swift 协议层与 Golden Test；Phase 3 的宏写入必须先与用户确认型号和风险，并在写入前记录当前 0x11/0x13/0x14/0x15/0x16/0x17 原始值以便恢复。
+Phase 1 的**通信链路已真机打通**（只读），Phase 2 的协议层与 Golden Test 已完成。下一步是 Phase 3（宏上传真机验证）：写入前必须先与用户确认型号/风险，并完整备份当前 0x10/0x11/0x13/0x14/0x15/0x16/0x17 原始值以便恢复；0x08/0x09 写命令在首次执行时只允许一个最小测试宏。

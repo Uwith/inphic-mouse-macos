@@ -9,9 +9,20 @@ let package = Package(
         .executable(name: "probe-selftest", targets: ["ProbeSelfTest"]),
         .library(name: "HIDProbeCore", targets: ["HIDProbeCore"]),
     ],
+    dependencies: [
+        .package(name: "InphicMouse", path: "../.."),
+    ],
     targets: [
-        .target(name: "HIDProbeCore"),
-        .executableTarget(name: "hid-probe", dependencies: ["HIDProbeCore"]),
-        .executableTarget(name: "ProbeSelfTest", dependencies: ["HIDProbeCore"]),
+        .target(name: "HIDProbeCore", dependencies: [
+            .product(name: "InphicMouseProtocol", package: "InphicMouse"),
+        ]),
+        .executableTarget(name: "hid-probe", dependencies: [
+            "HIDProbeCore",
+            .product(name: "InphicMouseProtocol", package: "InphicMouse"),
+        ]),
+        .executableTarget(name: "ProbeSelfTest", dependencies: [
+            "HIDProbeCore",
+            .product(name: "InphicMouseProtocol", package: "InphicMouse"),
+        ]),
     ]
 )

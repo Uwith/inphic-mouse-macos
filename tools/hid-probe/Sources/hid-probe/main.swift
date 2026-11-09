@@ -1,5 +1,6 @@
 import Foundation
 import HIDProbeCore
+import InphicMouseProtocol
 import IOKit
 
 // InphicMouse macOS HID Probe — Phase 1

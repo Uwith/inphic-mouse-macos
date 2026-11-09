@@ -1,5 +1,6 @@
 import Foundation
 import HIDProbeCore
+import InphicMouseProtocol
 
 // CLT-only 环境没有 XCTest（需要完整 Xcode），因此 Phase 1 用独立可执行自检。
 // 运行: swift run probe-selftest  （失败时退出码 1）
