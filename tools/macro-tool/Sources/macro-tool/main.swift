@@ -14,7 +14,7 @@ struct Options {
     var slot: Int?
     var backupPath: String?
     var yes = false
-    var timeout: TimeInterval = 1.0
+    var timeout: TimeInterval = 2.0
     var sets: [(index: Int, entry: KeyMapCodec.KeyEntry)] = []
 }
 

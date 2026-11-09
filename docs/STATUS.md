@@ -155,15 +155,16 @@ cd tools/macro-tool
 .build/debug/macro-tool restore --backup backups/inphic-20261109-091808.json --yes
 ```
 
-## 2026-11-09 按键映射写入：侧键 → Ctrl+← / Ctrl+→
+## 2026-11-09 按键映射写入：侧键 → Ctrl+← / Ctrl+→（方向已修正）
 
-- 备份：`backups/inphic-20261109-094819.json`
-- 写入：`0x09`，`write=true`、`ack=true`，读回 `0x11` **与目标一致**
-- 映射：键 3 `10 08 00` → `70 01 50`（左 Ctrl + HID Left）；键 4 `10 10 00` → `70 01 4F`（左 Ctrl + HID Right）
+- 第一次（方向相反）：键 3 `70 01 50`（Ctrl+←）、键 4 `70 01 4F`（Ctrl+→）；实测后侧键切上一空间，与预期相反。
+- 最终：键 3 `70 01 4F`（Ctrl+→，**后侧 = 下一空间**）；键 4 `70 01 50`（Ctrl+←，**前侧 = 上一空间**）。
+- 写入：`0x09` `write=true`、`ack=true`，`0x11` 读回 **与目标一致**。
+- 键盘报告实测（监听接口 1）：键 3 → `01 01 4F 00 00 00 00 00`；键 4 → `01 01 50 00 00 00 00 00`（report id=1，modifier=`0x01`=LCtrl）。
 - 线上帧（33 字节，strip 后发送 32 字节；校验只覆盖 payload）：
-  `00 09 00 01 12 10 01 00 10 02 00 10 04 00 70 01 50 70 01 4F 40 01 00 00 00 00 00 00 00 00 00 00 F9`
-- 执行：**待人工按键确认**（后侧键应切上一空间，前侧键应切下一空间）
-- 若无效，恢复：`macro-tool restore --backup backups/inphic-20261109-094819.json --yes`
+  `00 09 00 01 12 10 01 00 10 02 00 10 04 00 70 01 4F 70 01 50 40 01 00 00 00 00 00 00 00 00 00 00 F9`
+- 备份：`backups/inphic-20261109-095336.json`（最终版）；`backups/inphic-20261109-094819.json`（第一次版）
+- 恢复：`macro-tool restore --backup backups/inphic-20261109-095336.json --yes`
 
 ## 自检结果
 
