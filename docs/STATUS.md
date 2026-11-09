@@ -11,7 +11,7 @@
 | 系统 | macOS 27.2 (Build 26B123) |
 | 工具链 | Command Line Tools，Swift 6.4.2，macOS SDK 27.2 |
 | Xcode | **未安装**（无法构建 `.app`、XCTest 不可用） |
-| 设备 | 2.4G 接收器：`VID_249A&PID_5C2F`，Product `Wireless-Receiver`，Manufacturer `XCTECH`，Serial `2025`，`bInterfaceNumber=2`，输入/输出报告 32/32 |
+| 设备 | 2.4G 接收器：`VID_249A&PID_5C2F`，Product `Wireless-Receiver`，Manufacturer `XCTECH`，Serial 已隐去，`bInterfaceNumber=2`，输入/输出报告 32/32 |
 
 ## Phase 1 结果：**通过（只读）**
 
@@ -126,6 +126,7 @@
 |------|------|
 | `backup` | 成功：0x10–0x17/0x20 全部 ACK，写入 `backups/inphic-20261109-091808.json`（本地，gitignore） |
 | `plan --key 5` | 成功：读回 6 键映射，打印 0x08/0x09 帧，未写入 |
+| `set-key --set 3=70014F --set 4=700150 --yes` | 成功：`write=true`、`ack=true`、`0x11` 读回一致；HID 报告为 LCtrl+Right/Left（见下节） |
 
 `plan` 输出（关键帧）：
 

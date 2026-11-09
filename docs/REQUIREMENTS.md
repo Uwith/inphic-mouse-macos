@@ -1,4 +1,6 @@
 
+> 本文件是项目初始任务书，保留原文作为范围记录。实际能力、验证范围与限制以 [STATUS.md](STATUS.md) 和 [README](../README.md) 为准。
+
 项目任务：开发 Inphic IN9 升级版 macOS 原生宏配置工具
 一、项目目标
 你是一名资深 macOS 原生应用工程师、USB HID 协议逆向工程师和 Swift 系统开发工程师。
