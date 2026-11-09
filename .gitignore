@@ -11,3 +11,6 @@ logs/
 
 # 上游参考源码只作为只读参考，不纳入本仓库（见 docs/REVERSE_ENGINEERING.md）
 References/InphicMouse/
+
+# 本地备份（含设备原始配置）
+backups/

@@ -14,7 +14,7 @@
 | Phase 0 | 上游审计、协议分析、macOS 可行性、架构设计 | 完成（无硬件） |
 | Phase 1 | macOS HID Probe：枚举 / 识别 / 安全读取 | **通过（只读，2026-11-09）**，见 [docs/STATUS.md](docs/STATUS.md) |
 | Phase 2 | Swift 协议层 + Golden Test | **完成**（194 项自检，2026-11-09） |
-| Phase 3 | 宏上传真机验证 | 未开始（需硬件） |
+| Phase 3 | 宏上传真机验证 | **工具完成，写入未执行**（等待用户确认；见 docs/STATUS.md） |
 | Phase 4 | SwiftUI 正式界面 | 未开始（Phase 1–3 通过后才开始） |
 | Phase 5 | 打包 / 测试 / 文档 | 未开始 |
 
@@ -39,6 +39,17 @@ swift build -c release
 .build/release/hid-probe probe --index 2
 .build/release/hid-probe monitor --seconds 30
 swift run probe-selftest               # 76 项协议帧自检（CLT 环境无 XCTest）
+```
+
+宏工具（Phase 3；`apply`/`restore` 默认拒绝，必须 `--yes`）：
+
+```bash
+cd tools/macro-tool
+swift build
+.build/debug/macro-tool backup                 # 备份 0x10–0x17/0x20 到 backups/
+.build/debug/macro-tool plan --key 5           # 只读 dry-run：打印 0x08/0x09 帧
+.build/debug/macro-tool apply --key 5 --yes    # 真实写入（会先备份）
+.build/debug/macro-tool restore --backup backups/<file>.json --yes
 ```
 
 Probe 只发送协议文档中已确认的**只读**命令（0x10–0x17、0x20），拒绝任何写入、复位或未知命令。原始帧以十六进制打印，可重定向保存：

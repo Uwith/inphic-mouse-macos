@@ -128,7 +128,7 @@ struct SendOutcome {
 |------|------|----------------------|
 | Phase 1 | `tools/hid-probe` | **已完成（只读）**：枚举、接口定位、打开、0x10–0x17/0x20 全部 ACK、5/5 稳定性。见 `docs/STATUS.md`。 |
 | Phase 2 | Swift 协议层 + Golden Test | **已完成**：`swift run protocol-selftest` → 194 passed / 0 failed；字节与上游测试一致。 |
-| Phase 3 | 宏上传工具 | 写 A↓100ms A↑ 到指定槽 → ACK → 绑定按键 → 用户按键确认执行；拔插后仍有效。读回不支持则记录。 |
+| Phase 3 | 宏上传工具 | **工具已完成，未写入**：`tools/macro-tool backup/plan` 已真机验证；`apply` 等待用户授权，见 `docs/STATUS.md`。 |
 | Phase 4 | SwiftUI App | 只调用已验证的 Service；设备主页/宏编辑器/按键映射/设置/诊断。 |
 | Phase 5 | `.app` / `.dmg` / 文档 | arm64 构建、未签名说明、用户指南、兼容性表。 |
 
