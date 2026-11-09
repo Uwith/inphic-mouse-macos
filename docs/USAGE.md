@@ -13,6 +13,8 @@
 
 已验证设备：`VID_249A&PID_5C2F`，Product `Wireless-Receiver`，`bInterfaceNumber=2`，输入/输出报告 32/32。
 
+> 当前按键写入按 `0x11` 返回 **6 个条目** 处理；如果设备返回 5 键，工具会拒绝写入。请先提交 `hid-probe probe` 的只读结果。
+
 > 写入前请关闭原厂 Windows 软件、虚拟机直通工具或其它可能占用 HID 接口的程序。正常使用鼠标时无需关闭。
 
 ## 2. 构建
